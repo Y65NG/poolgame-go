@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"image/color"
 	"math"
 
@@ -67,7 +68,8 @@ func (c *CueStick) Move() {
 		}
 	}
 
-	a := 0.01
+	a := -0.001
+	aa := a * 20
 	if c.targetBall == nil {
 		return
 	}
@@ -77,9 +79,9 @@ func (c *CueStick) Move() {
 			c.arrow.rotateByTarget(a)
 			// c.addPos(-v, 0)
 		} else {
-			c.rotateByTarget(4 * a)
-			c.arrow.rotateByTarget(4 * a)
-			// c.addPos(-4*v, 0)
+			c.rotateByTarget(aa)
+			c.arrow.rotateByTarget(aa)
+			// c.addPos(-20*v, 0)
 		}
 	} else if inpututil.KeyPressDuration(ebiten.KeyD) > 0 && c.X < _boardWidth+2*_stickWidth && c.powerLevel == 0 {
 		if inpututil.KeyPressDuration(ebiten.KeyShift) > 0 {
@@ -87,17 +89,17 @@ func (c *CueStick) Move() {
 			c.rotateByTarget(-a)
 			c.arrow.rotateByTarget(-a)
 		} else {
-			c.rotateByTarget(-4 * a)
-			c.arrow.rotateByTarget(-4 * a)
-			// c.addPos(4*v, 0)
+			c.rotateByTarget(-aa)
+			c.arrow.rotateByTarget(-aa)
+			// c.addPos(20*v, 0)
 		}
 	} else if inpututil.KeyPressDuration(ebiten.KeyQ) > 0 {
 		if inpututil.KeyPressDuration(ebiten.KeyShift) > 0 {
 			c.moveByTarget(a)
 			c.arrow.moveByTarget(a)
 		} else {
-			c.moveByTarget(4 * a)
-			c.arrow.moveByTarget(4 * a)
+			c.moveByTarget(aa)
+			c.arrow.moveByTarget(aa)
 
 		}
 	} else if inpututil.KeyPressDuration(ebiten.KeyE) > 0 {
@@ -105,8 +107,8 @@ func (c *CueStick) Move() {
 			c.moveByTarget(-a)
 			c.arrow.moveByTarget(-a)
 		} else {
-			c.moveByTarget(-4 * a)
-			c.arrow.moveByTarget(-4 * a)
+			c.moveByTarget(-aa)
+			c.arrow.moveByTarget(-aa)
 
 		}
 	} else if dt := inpututil.KeyPressDuration(ebiten.KeySpace); dt > 0 {
@@ -129,7 +131,7 @@ func (c *CueStick) Move() {
 		// fmt.Println("c.PowerLevel:", c.PowerLevel)
 		switch c.powerLevel {
 		case 5:
-			c.mass = .65
+			c.mass = .6
 		case 4:
 			c.mass = .4
 		case 3:
@@ -160,12 +162,12 @@ func (c *CueStick) Collide(ball Object) {
 			vx1, vy1 = v1.X, v1.Y
 			vx2, vy2 = other.velocity.X, other.velocity.Y
 		)
-		newB1, newB2 := c.Clone(), other.Clone()
-		newB1.X, newB1.Y = c.X+vx1, c.Y+vy1
-		newB2.X, newB2.Y = other.X+vx2, other.Y+vy2
+		// newB1, newB2 := c.Clone(), other.Clone()
+		// newB1.X, newB1.Y = c.X+vx1, c.Y+vy1
+		// newB2.X, newB2.Y = other.X+vx2, other.Y+vy2
 
 		// fmt.Println(v1.Normalize().X, v1.Normalize().Y)
-		if intersection := newB1.Shape.Intersection(1, 1, newB2.Shape); intersection != nil {
+		if intersection := c.Clone().Shape.Intersection(1, 1, other.Clone().Shape); intersection != nil {
 			var (
 				p1, p2   = Vec{c.X, c.Y}, Vec{other.X, other.Y}
 				v1, v2   = Vec{vx1, vy1}, Vec{vx2, vy2}
@@ -178,6 +180,7 @@ func (c *CueStick) Collide(ball Object) {
 			v2 = v2p.Scale((m2 - m1) / (m1 + m2)).Add(v1p.Scale(2 * m1 / (m1 + m2))).Add(v2n)
 			// c.Velocity.X, c.Velocity.Y = v1.X, v1.Y
 			other.velocity.X, other.velocity.Y = v2.X, v2.Y
+			fmt.Println(v2.X, v2.Y)
 			c.mass = 0
 			c.targetBall = nil
 		}

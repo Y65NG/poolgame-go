@@ -86,11 +86,9 @@ func (b *Ball) Collide(other Object) {
 			vx1, vy1 = b.velocity.X, b.velocity.Y
 			vx2, vy2 = other.velocity.X, other.velocity.Y
 		)
-		newB1, newB2 := b.Clone(), other.Clone()
-		newB1.X, newB1.Y = b.X+vx1, b.Y+vy1
-		newB2.X, newB2.Y = other.X+vx2, other.Y+vy2
+		// newB1, newB2 := b.Clone(), other.Clone()
 
-		if intersection := newB1.Shape.Intersection(1*vx1, 1*vy1, newB2.Shape); intersection != nil {
+		if intersection := b.Clone().Shape.Intersection(vx1, vy1, other.Clone().Shape); intersection != nil {
 			var (
 				p1, p2   = Vec{b.X, b.Y}, Vec{other.X, other.Y}
 				v1, v2   = Vec{vx1, vy1}, Vec{vx2, vy2}

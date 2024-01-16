@@ -14,7 +14,7 @@ const (
 	_boardWidth  = _boardHeight / 2
 )
 
-const _friction = 0.015
+const _friction = 0.012
 
 type Board struct {
 	*ebiten.Image
@@ -73,7 +73,7 @@ func NewBoard() *Board {
 	}
 	b := &Board{
 		Image: ebiten.NewImage(_boardWidth, _boardHeight),
-		Space: resolv.NewSpace(_boardWidth, _boardHeight, _ballRadius*2, _ballRadius*2),
+		Space: resolv.NewSpace(_boardWidth*5, _boardHeight*5, _ballRadius*10, _ballRadius*10),
 
 		balls:   balls,
 		stick:   NewCueStick(balls[0]),
@@ -83,6 +83,9 @@ func NewBoard() *Board {
 	b.Space.Add(b.stick.Object)
 	for _, ball := range b.balls {
 		b.Space.Add(ball.Object)
+	}
+	for _, edge := range b.edges {
+		b.Space.Add(edge.Object)
 	}
 	return b
 }
