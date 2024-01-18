@@ -3,6 +3,6 @@
 
 
 TODO:
-- [ ] Game Logic
+- [x] Game Logic
 - [ ] Online playing
 - [ ] Game UI
