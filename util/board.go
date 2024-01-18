@@ -14,7 +14,7 @@ const (
 	_boardWidth  = _boardHeight / 2
 )
 
-const _friction = 0.012
+const _friction = 0.013
 
 type Board struct {
 	*ebiten.Image
@@ -24,31 +24,34 @@ type Board struct {
 	stick   *CueStick
 	baskets []*Basket
 	edges   []*Edge
+
+	station *Station
 }
 
-func NewBoard() *Board {
+func NewBoard(station *Station) *Board {
 	balls := make([]*Ball, 16)
-	balls[0] = NewWhiteball(balls)
+	balls[0] = NewWhiteball(balls, station)
 
 	// Positions of balls relative to the black ball from bottom right to top left.
 	relativePoses := [][2]float64{
-		{0 * _ballRadius, 4 * _ballRadius},
-		{-1 * _ballRadius, 2 * _ballRadius},
-		{-2 * _ballRadius, 0 * _ballRadius},
-		{-3 * _ballRadius, -2 * _ballRadius},
-		{-4 * _ballRadius, -4 * _ballRadius},
-
-		{1 * _ballRadius, 2 * _ballRadius},
-		{0 * _ballRadius, 0 * _ballRadius}, // the black ball
-		{-1 * _ballRadius, -2 * _ballRadius},
-		{-2 * _ballRadius, -4 * _ballRadius},
-
-		{2 * _ballRadius, 0 * _ballRadius},
-		{1 * _ballRadius, -2 * _ballRadius},
-		{0 * _ballRadius, -4 * _ballRadius},
 
 		{3 * _ballRadius, -2 * _ballRadius},
+		{1 * _ballRadius, 2 * _ballRadius},
+		{-2 * _ballRadius, -4 * _ballRadius},
 		{2 * _ballRadius, -4 * _ballRadius},
+		{1 * _ballRadius, -2 * _ballRadius},
+		{-3 * _ballRadius, -2 * _ballRadius},
+		{-1 * _ballRadius, 2 * _ballRadius},
+		{0 * _ballRadius, 0 * _ballRadius}, // the black ball
+
+		{0 * _ballRadius, 4 * _ballRadius},
+		{-2 * _ballRadius, 0 * _ballRadius},
+		{-4 * _ballRadius, -4 * _ballRadius},
+
+		{-1 * _ballRadius, -2 * _ballRadius},
+
+		{2 * _ballRadius, 0 * _ballRadius},
+		{0 * _ballRadius, -4 * _ballRadius},
 
 		{4 * _ballRadius, -4 * _ballRadius},
 	}
@@ -57,28 +60,31 @@ func NewBoard() *Board {
 		balls[i] = NewBall(
 			balls,
 			ballID(i),
-			_boardWidth/2+relativePoses[i-1][0]*1.5,
-			_boardHeight/2-240+relativePoses[i-1][1]*1.5,
+			_boardWidth/2+relativePoses[i-1][0]*1.3,
+			_boardHeight/4+relativePoses[i-1][1]*1.3,
+			station,
 		)
 	}
 
 	baskets := make([]*Basket, 6)
 	for id := _idBasketTopLeft; id <= _idBasketBottomRight; id++ {
-		baskets[id-1] = newBasket(id)
+		baskets[id-1] = newBasket(id, station)
 	}
 
 	edges := make([]*Edge, 6)
 	for pos := _edgeTop; pos <= _edgeTopRight; pos++ {
-		edges[pos-1] = NewEdge(pos)
+		edges[pos-1] = NewEdge(pos, station)
 	}
 	b := &Board{
 		Image: ebiten.NewImage(_boardWidth, _boardHeight),
 		Space: resolv.NewSpace(_boardWidth*5, _boardHeight*5, _ballRadius*10, _ballRadius*10),
 
 		balls:   balls,
-		stick:   NewCueStick(balls[0]),
+		stick:   NewCueStick(balls[0], station),
 		baskets: baskets,
 		edges:   edges,
+
+		station: station,
 	}
 	b.Space.Add(b.stick.Object)
 	for _, ball := range b.balls {
@@ -91,22 +97,7 @@ func NewBoard() *Board {
 }
 
 func (b *Board) Draw(screen *ebiten.Image) {
-	for _, ball := range b.balls {
-		if ball.catched {
-			continue
-		}
-		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(ball.X-_ballRadius, ball.Y-_ballRadius)
-		ball.draw()
-		b.DrawImage(ball.Image, op)
-		// vector.StrokeRect(b.Image, float32(ball.X-_ballRadius), float32(ball.Y-_ballRadius), float32(2*_ballRadius), float32(2*_ballRadius), 1, color.White, true)
-		// v1, v2 := b.Stick.Shape.Bounds()
-		// vector.StrokeRect(b.Image, float32(v1.X()), float32(v1.Y()), float32(v2.X()-v1.X()), float32(v2.Y()-v1.Y()), 1, color.White, true)
-		// vector.StrokeRect(b.Image, b.Stick.Shape.)
-		if ball == b.stick.targetBall {
-			vector.StrokeRect(b.Image, float32(ball.X-_ballRadius), float32(ball.Y-_ballRadius), float32(2*_ballRadius), float32(2*_ballRadius), 1, color.White, true)
-		}
-	}
+	vector.DrawFilledRect(b.Image, 0, 0, float32(_boardWidth), float32(_boardHeight), _boardColor, false)
 
 	for _, edge := range b.edges {
 		edge.draw()
@@ -114,24 +105,17 @@ func (b *Board) Draw(screen *ebiten.Image) {
 		op.GeoM.Translate(edge.X, edge.Y)
 		b.DrawImage(edge.Image, op)
 
-		// v1, v2 := edge.Shape.Bounds()
-		// // fmt.Println("edge bounds:", v1, v2)
-		// vector.StrokeRect(b.Image, float32(v1.X()), float32(v1.Y()), float32(v2.X()-v1.X()), float32(v2.Y()-v1.Y()), 1, color.White, true)
 	}
 	vector.StrokeRect(b.Image, .1, .1, float32(_boardWidth)-.2, float32(_boardHeight)-.2, 1, color.White, false)
 
 }
 
 func (b *Board) Update() {
-	b.stick.Move()
+	b.stick.Move(b.balls)
 	for i := 0; i < len(b.balls); i++ {
 		b.balls[i].Move()
 		b.stick.Collide(b.balls[i])
-		// b.edges[0].Collide(b.balls[i])
 		for _, edge := range b.edges {
-			if edge == nil {
-				continue
-			}
 			edge.Collide(b.balls[i])
 		}
 
@@ -139,7 +123,7 @@ func (b *Board) Update() {
 			basket.catchBall(b.balls[i])
 		}
 
-		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) && !b.station.FreeMode {
 			x, y := ebiten.CursorPosition()
 			x -= (ScreenWidth - _boardWidth) / 2
 			y -= (ScreenHeight - _boardHeight) / 2
@@ -147,10 +131,28 @@ func (b *Board) Update() {
 				// fmt.Println(b.balls[i].velocity, b.balls[i].velocity.Size())
 				if b.balls[i].velocity.Size() <= .005 {
 					b.stick.targetBall = b.balls[i]
+					// b.stick.selected = true
 					b.stick.angleToPos()
 					b.stick.arrow.angleToPos()
 				}
 			}
 		}
 	}
+	if b.BallsStatic() {
+		b.station.ChanBallsStatic <- struct{}{}
+	}
+
+}
+
+func (b *Board) Reset() {
+	b = NewBoard(b.station)
+}
+
+func (b *Board) BallsStatic() bool {
+	for _, ball := range b.balls {
+		if ball.velocity.Size() > 0 {
+			return false
+		}
+	}
+	return true
 }

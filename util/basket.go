@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"image/color"
 	"math"
 
@@ -31,9 +30,11 @@ type Basket struct {
 
 	id    basketID
 	balls []*Ball
+
+	station *Station
 }
 
-func newBasket(id basketID) *Basket {
+func newBasket(id basketID, station *Station) *Basket {
 	w := _basketRadius
 	var x, y float64
 	switch id {
@@ -55,6 +56,8 @@ func newBasket(id basketID) *Basket {
 		Image:  ebiten.NewImage(int(w*2)+2, int(w*2)+2),
 		Object: resolv.NewObject(x, y, _basketRadius, _basketRadius, "basket"),
 		id:     id,
+
+		station: station,
 	}
 	b.Object.SetShape(resolv.NewCircle(x, y, _basketRadius))
 	return b
@@ -64,8 +67,9 @@ func (b *Basket) catchBall(ball *Ball) {
 	d := Vec{ball.X - b.X, ball.Y - b.Y}.Size()
 	nextD := Vec{ball.X + ball.velocity.X - b.X, ball.Y + ball.velocity.Y - b.Y}.Size()
 	if (d <= (_basketRadius-_ballRadius/2.5) || nextD <= (_basketRadius-_ballRadius/2.5)) && !ball.catched {
-		fmt.Println("catched")
+
 		ball.catched = true
+		b.station.ChanBallIn <- ball
 		b.balls = append(b.balls, ball)
 		ball.velocity = Vec{0, 0}
 		ball.X, ball.Y = b.X, b.Y

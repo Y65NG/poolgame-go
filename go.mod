@@ -1,9 +1,10 @@
-module billiards
+module poolball
 
 go 1.21.1
 
 require (
 	github.com/hajimehoshi/ebiten/v2 v2.6.3
+	github.com/icza/gox v0.0.0-20230924165045-adcb03233bb5
 	github.com/solarlune/resolv v0.6.1
 )
 

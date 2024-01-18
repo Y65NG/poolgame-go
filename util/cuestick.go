@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"image/color"
 	"math"
 
@@ -20,57 +19,81 @@ const (
 
 type CueStick struct {
 	*ebiten.Image
-	// Massive
 	*resolv.Object // the tip of the cue stick
 
 	targetBall *Ball
-	// Pivot      Vec
+	selected   bool
 	speed      float64
 	powerLevel int
 	mass       float64
 	angle      float64
 	arrow      *Arrow
+
+	station *Station
 }
 
-func NewCueStick(target *Ball) *CueStick {
+func NewCueStick(target *Ball, station *Station) *CueStick {
 	obj := resolv.NewObject(_boardWidth/2, _boardHeight/2+265, _stickWidth, _stickWidth*2, "cue")
 	obj.SetShape(resolv.NewRectangle(0, 0, .1, _stickWidth*2))
-	// obj.SetShape(resolv.NewCircle(0, 0, 1))
 	stick := &CueStick{
 		Image:  ebiten.NewImage(_stickWidth, _stickLength),
 		Object: obj,
 
 		targetBall: target,
 		speed:      30.,
+
+		station: station,
 	}
 	stick.arrow = NewArrow(stick)
 
 	return stick
 }
 
-func (c *CueStick) Move() {
+func (c *CueStick) Move(balls []*Ball) {
 	if DEBUG {
 		b := c.targetBall
-		if b == nil {
-			return
-		}
+
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
-			b.velocity.X -= 0.1
+			c.selected = false
+			b.velocity.X -= 0.2
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
-			b.velocity.X += 0.1
+			c.selected = false
+			b.velocity.X += 0.2
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
-			b.velocity.Y -= 0.1
+			c.selected = false
+			b.velocity.Y -= 0.2
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
-			b.velocity.Y += 0.1
+			c.selected = false
+			b.velocity.Y += 0.2
 		}
+
+	}
+
+	if c.station.FreeMode {
+		// log.Println("free mode")
+		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+			c.targetBall.catched = false
+			x, y := ebiten.CursorPosition()
+			x -= (ScreenWidth - _boardWidth) / 2
+			y -= (ScreenHeight - _boardHeight) / 2
+			for _, ball := range balls {
+				if ball.containsPos(float64(x), float64(y)) {
+					return
+				}
+			}
+			c.targetBall.X, c.targetBall.Y = float64(x), float64(y)
+			c.station.FreeMode = false
+
+		}
+		return
 	}
 
 	a := -0.001
 	aa := a * 20
-	if c.targetBall == nil {
+	if !c.selected {
 		return
 	}
 	if inpututil.KeyPressDuration(ebiten.KeyA) > 0 && c.X > -2*_stickWidth && c.powerLevel == 0 {
@@ -93,26 +116,7 @@ func (c *CueStick) Move() {
 			c.arrow.rotateByTarget(-aa)
 			// c.addPos(20*v, 0)
 		}
-	} else if inpututil.KeyPressDuration(ebiten.KeyQ) > 0 {
-		if inpututil.KeyPressDuration(ebiten.KeyShift) > 0 {
-			c.moveByTarget(a)
-			c.arrow.moveByTarget(a)
-		} else {
-			c.moveByTarget(aa)
-			c.arrow.moveByTarget(aa)
-
-		}
-	} else if inpututil.KeyPressDuration(ebiten.KeyE) > 0 {
-		if inpututil.KeyPressDuration(ebiten.KeyShift) > 0 {
-			c.moveByTarget(-a)
-			c.arrow.moveByTarget(-a)
-		} else {
-			c.moveByTarget(-aa)
-			c.arrow.moveByTarget(-aa)
-
-		}
 	} else if dt := inpututil.KeyPressDuration(ebiten.KeySpace); dt > 0 {
-		// fmt.Println("Pressed")
 		if dt > 20 {
 			c.powerLevel = 1
 			switch {
@@ -128,14 +132,13 @@ func (c *CueStick) Move() {
 		}
 
 	} else if inpututil.IsKeyJustReleased(ebiten.KeySpace) && c.powerLevel > 0 {
-		// fmt.Println("c.PowerLevel:", c.PowerLevel)
 		switch c.powerLevel {
 		case 5:
-			c.mass = .6
+			c.mass = .5
 		case 4:
-			c.mass = .4
+			c.mass = .35
 		case 3:
-			c.mass = .25
+			c.mass = .23
 		case 2:
 			c.mass = .12
 		case 1:
@@ -143,30 +146,25 @@ func (c *CueStick) Move() {
 		}
 		u := Vec{0, -1}.Rotate(c.angle).Scale(c.speed)
 
-		// c.addPos(u.X, u.Y)
 		c.X += u.X
 		c.Y += u.Y
 
 		c.powerLevel = 0
+		c.station.Shot = true
 	}
 	c.Update()
 }
 
 func (c *CueStick) Collide(ball Object) {
-	if c.mass == 0 {
-		return
-	}
 	if other, ok := ball.(*Ball); ok {
+		if c.mass == 0 || ball != c.targetBall || other.catched {
+			return
+		}
 		var (
 			v1       = Vec{0, -1}.Rotate(c.angle).Scale(c.speed)
 			vx1, vy1 = v1.X, v1.Y
 			vx2, vy2 = other.velocity.X, other.velocity.Y
 		)
-		// newB1, newB2 := c.Clone(), other.Clone()
-		// newB1.X, newB1.Y = c.X+vx1, c.Y+vy1
-		// newB2.X, newB2.Y = other.X+vx2, other.Y+vy2
-
-		// fmt.Println(v1.Normalize().X, v1.Normalize().Y)
 		if intersection := c.Clone().Shape.Intersection(1, 1, other.Clone().Shape); intersection != nil {
 			var (
 				p1, p2   = Vec{c.X, c.Y}, Vec{other.X, other.Y}
@@ -176,24 +174,15 @@ func (c *CueStick) Collide(ball Object) {
 				v2n      = v2.Add(v2p.Negate())
 				m1, m2   = c.mass, other.mass
 			)
-			// v1 = v1p.Scale((m1 - m2) / (m1 + m2)).Add(v2p.Scale(2 * m2 / (m1 + m2))).Add(v1n)
 			v2 = v2p.Scale((m2 - m1) / (m1 + m2)).Add(v1p.Scale(2 * m1 / (m1 + m2))).Add(v2n)
-			// c.Velocity.X, c.Velocity.Y = v1.X, v1.Y
 			other.velocity.X, other.velocity.Y = v2.X, v2.Y
-			fmt.Println(v2.X, v2.Y)
 			c.mass = 0
-			c.targetBall = nil
+			c.selected = false
 		}
 
 	}
 }
 
-func (c *CueStick) moveByTarget(angle float64) {
-	// r := Vec{c.TargetBall.X, c.TargetBall.Y}.Sub(Vec{c.X, c.Y})
-	// dr := r.Sub(r.Rotate(angle))
-	// c.X, c.Y = c.X+dr.X, c.Y+dr.Y
-	// c.Update()
-}
 func (c *CueStick) rotateByTarget(angle float64) {
 	r := Vec{c.targetBall.X, c.targetBall.Y}.Sub(Vec{c.X, c.Y})
 	dr := r.Sub(r.Rotate(angle))
@@ -203,7 +192,7 @@ func (c *CueStick) rotateByTarget(angle float64) {
 }
 
 func (c *CueStick) angleToPos() {
-	if c.targetBall == nil {
+	if !c.selected {
 		return
 	}
 	c.X = c.targetBall.X + _distanceToTarget*math.Cos(c.angle+math.Pi/2)
@@ -216,6 +205,10 @@ func (c *CueStick) rotate(angle float64) {
 }
 
 func (c *CueStick) draw() {
+	if c.station.FreeMode {
+		c.Clear()
+		return
+	}
 	vector.DrawFilledRect(c.Image, 0, _stickWidth+1, _stickWidth, _stickLength, color.RGBA{185, 135, 64, 255}, true)
 	vector.DrawFilledRect(c.Image, 2, 0, _stickWidth-4, _stickWidth+1, color.RGBA{240, 240, 240, 255}, true)
 	vector.DrawFilledRect(c.Image, -3, 2*_stickLength/3, _stickWidth+6, _stickLength, color.RGBA{82, 52, 31, 255}, true)

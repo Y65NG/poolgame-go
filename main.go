@@ -1,15 +1,16 @@
 package main
 
 import (
-	"billiards/util"
+	"poolball/util"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func main() {
 	ebiten.SetWindowSize(util.ScreenWidth, util.ScreenHeight)
-	ebiten.SetWindowTitle("Billiards")
+	ebiten.SetWindowTitle("Pool Ball")
 	g := util.NewGame()
+	go g.Loop()
 	if err := ebiten.RunGame(g); err != nil {
 		panic(err)
 	}

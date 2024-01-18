@@ -1,7 +1,6 @@
 package util
 
 import (
-	"image/color"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -10,7 +9,7 @@ import (
 )
 
 const (
-	_arrowWidth      = 1
+	_arrowWidth      = 2
 	_arrowBaseLength = 100
 )
 
@@ -27,7 +26,7 @@ func NewArrow(stick *CueStick) *Arrow {
 	obj.SetShape(resolv.NewRectangle(0, 0, .1, _arrowWidth*2))
 	// obj.SetShape(resolv.NewCircle(0, 0, 1))
 	return &Arrow{
-		Image:  ebiten.NewImage(_arrowWidth, _arrowBaseLength*2),
+		Image:  ebiten.NewImage(_arrowWidth, _arrowBaseLength*2.5),
 		Object: obj,
 
 		stick: stick,
@@ -56,12 +55,6 @@ func (c *Arrow) Vertices() []ebiten.Vertex {
 	}
 }
 
-func (c *Arrow) moveByTarget(angle float64) {
-	// r := Vec{c.TargetBall.X, c.TargetBall.Y}.Sub(Vec{c.X, c.Y})
-	// dr := r.Sub(r.Rotate(angle))
-	// c.X, c.Y = c.X+dr.X, c.Y+dr.Y
-	// c.Update()
-}
 func (c *Arrow) rotateByTarget(angle float64) {
 	r := Vec{c.stick.targetBall.X, c.stick.targetBall.Y}.Sub(Vec{c.X, c.Y})
 	dr := r.Sub(r.Rotate(angle))
@@ -84,11 +77,11 @@ func (c *Arrow) rotate(angle float64) {
 }
 
 func (c *Arrow) draw() {
-	if c.stick.targetBall == nil {
+	if !c.stick.selected || c.stick.station.FreeMode {
 		c.Clear()
 		return
 	}
-	vector.DrawFilledRect(c.Image, 0, 2*float32(c.Length())/5, _arrowWidth, float32(c.Length()), color.RGBA{100, 100, 100, 255}, true)
+	vector.DrawFilledRect(c.Image, 0, 2*float32(c.Length())/5, _arrowWidth, float32(c.Length()), _colorGrey, true)
 
-	// vector.DrawFilledRect(c.Image, 2, 0, _arrowWidth-4, _arrowWidth+1, color.RGBA{240, 240, 240, 255}, true)
+	// vector.DrawFilledRect(c.Image, 0, 2*float32(c.Length())/5, _arrowWidth+10, _arrowWidth+10, _colorGrey, true)
 }

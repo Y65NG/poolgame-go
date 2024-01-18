@@ -12,6 +12,8 @@ github.com/hajimehoshi/ebiten/v2 v2.6.3/go.mod h1:TZtorL713an00UW4LyvMeKD8uXWnuI
 github.com/hajimehoshi/go-mp3 v0.3.4/go.mod h1:fRtZraRFcWb0pu7ok0LqyFhCUrPeMsGRSVop0eemFmo=
 github.com/hajimehoshi/oto/v2 v2.3.1/go.mod h1:seWLbgHH7AyUMYKfKYT9pg7PhUu9/SisyJvNTT+ASQo=
 github.com/hajimehoshi/oto/v2 v2.4.0/go.mod h1:74bRBgfJaEDpP3NyVyHIYBJE4DgzJ2IP5l/st5qcJog=
+github.com/icza/gox v0.0.0-20230924165045-adcb03233bb5 h1:K7KEFpKgVcjj98jOu2Z3xMBTtTwfYVT90Zmo3ZuWmbE=
+github.com/icza/gox v0.0.0-20230924165045-adcb03233bb5/go.mod h1:VbcN86fRkkUMPX2ufM85Um8zFndLZswoIW1eYtpAcVk=
 github.com/jakecoffman/cp v1.2.1/go.mod h1:JjY/Fp6d8E1CHnu74gWNnU0+b9VzEdUVPoJxg2PsTQg=
 github.com/jezek/xgb v1.1.0 h1:wnpxJzP1+rkbGclEkmwpVFQWpuE2PUGNUzP8SbfFobk=
 github.com/jezek/xgb v1.1.0/go.mod h1:nrhwO0FX/enq75I7Y7G8iN1ubpSGZEiA3v9e9GyRFlk=
