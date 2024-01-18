@@ -5,8 +5,10 @@ type Station struct {
 	FirstCollidedBall *Ball
 	Shot              bool
 	BallIn            bool
+	GameState         GameState
+	Winner            *Player
 
-	ChanGameOver    chan struct{}
+	ChanGameOver    chan *Player
 	ChanFoul        chan struct{}
 	ChanNextTurn    chan struct{}
 	ChanBallIn      chan *Ball
@@ -15,7 +17,7 @@ type Station struct {
 
 func NewStation() Station {
 	return Station{
-		ChanGameOver:    make(chan struct{}, 1),
+		ChanGameOver:    make(chan *Player, 1),
 		ChanFoul:        make(chan struct{}, 1),
 		ChanNextTurn:    make(chan struct{}, 1),
 		ChanBallIn:      make(chan *Ball, 1),

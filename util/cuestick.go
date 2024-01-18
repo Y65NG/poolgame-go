@@ -50,6 +50,9 @@ func NewCueStick(target *Ball, station *Station) *CueStick {
 }
 
 func (c *CueStick) Move(balls []*Ball) {
+	if c.station.GameState != StatePlaying {
+		return
+	}
 	if DEBUG {
 		b := c.targetBall
 
@@ -79,8 +82,12 @@ func (c *CueStick) Move(balls []*Ball) {
 			x, y := ebiten.CursorPosition()
 			x -= (ScreenWidth - _boardWidth) / 2
 			y -= (ScreenHeight - _boardHeight) / 2
+			w := _edgeWidth
+			if x-_ballRadius-int(w) < 0 || x+_ballRadius+int(w) > _boardWidth || y-_ballRadius-int(w) < 0 || y+_ballRadius+int(w) > _boardHeight {
+				return
+			}
 			for _, ball := range balls {
-				if ball.containsPos(float64(x), float64(y)) {
+				if ball.kind != _kindWhite && math.Abs(ball.X-float64(x)) < 2*_ballRadius && math.Abs(ball.Y-float64(y)) < 2*_ballRadius {
 					return
 				}
 			}

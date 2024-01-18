@@ -3,11 +3,11 @@ package util
 import (
 	"image/color"
 	"log"
-	"os"
 	"strconv"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -20,6 +20,13 @@ const (
 )
 
 const DEBUG = true
+
+type GameState int
+
+const (
+	StatePlaying GameState = iota
+	StateGameOver
+)
 
 type Game struct {
 	Board        *Board
@@ -47,18 +54,31 @@ func (g *Game) Loop() {
 
 	for {
 		select {
-		case <-g.Station.ChanGameOver:
-			log.Println("Game Over")
-			os.Exit(0)
-			return
+		case player := <-g.Station.ChanGameOver:
+			g.Station.GameState = StateGameOver
+			g.Station.Winner = player
 
 		case <-g.Station.ChanFoul:
+			if g.Station.GameState == StateGameOver {
+				continue
+			}
 			g.TurnToNextPlayer()
 			g.Station.FreeMode = true
 
 		case ball := <-g.Station.ChanBallIn:
+			if g.Station.GameState == StateGameOver {
+				continue
+			}
 			if ball.kind == _kindWhite {
 				g.Station.ChanFoul <- struct{}{}
+				continue
+			}
+			if ball.kind == _kindBlack {
+				if g.CurPlayer().Score == 7 {
+					g.Station.ChanGameOver <- g.CurPlayer()
+				} else {
+					g.Station.ChanGameOver <- g.NextPlayer()
+				}
 				continue
 			}
 			g.Station.BallIn = true
@@ -79,13 +99,16 @@ func (g *Game) Loop() {
 			}
 
 		case <-g.Station.ChanBallsStatic:
+			if g.Station.GameState == StateGameOver {
+				continue
+			}
 			if g.Station.Shot {
 				g.Station.Shot = false
 
 				// check if the white ball collide with other balls
 				if ball := g.Station.FirstCollidedBall; ball != nil {
 					// check if the collided ball isn't the same kind as the current player's
-					if g.CurPlayer().BallKind != _kindWhite && ball.kind != g.CurPlayer().BallKind {
+					if ball.kind != _kindBlack && g.CurPlayer().BallKind != _kindWhite && ball.kind != g.CurPlayer().BallKind {
 						g.Station.FirstCollidedBall = nil
 
 						g.Station.ChanFoul <- struct{}{}
@@ -134,8 +157,18 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func (g *Game) Update() error {
-	g.Board.Update()
-	g.Board.Image.Clear()
+	switch g.Station.GameState {
+	case StatePlaying:
+		g.Board.Update()
+		g.Board.Image.Clear()
+	case StateGameOver:
+		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+			log.Println("Restart")
+			g.Board.Reset()
+			g.Station.Reset()
+			g.Station.GameState = StatePlaying
+		}
+	}
 
 	return nil
 }
@@ -164,15 +197,22 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 		op.GeoM.Reset()
 		op.GeoM.Translate((ScreenWidth-_boardWidth)/2+ball.X-_ballRadius, (ScreenHeight-_boardHeight)/2+ball.Y-_ballRadius)
-		ball.draw()
+		ball.draw(false)
 		screen.DrawImage(ball.Image, op)
-		// vector.StrokeRect(b.Image, float32(ball.X-_ballRadius), float32(ball.Y-_ballRadius), float32(2*_ballRadius), float32(2*_ballRadius), 1, color.White, true)
-		// v1, v2 := b.Stick.Shape.Bounds()
-		// vector.StrokeRect(b.Image, float32(v1.X()), float32(v1.Y()), float32(v2.X()-v1.X()), float32(v2.Y()-v1.Y()), 1, color.White, true)
-		// vector.StrokeRect(b.Image, b.Stick.Shape.)
 		if ball == g.Board.stick.targetBall && g.Board.stick.selected {
 			vector.StrokeRect(screen, (ScreenWidth-_boardWidth)/2+float32(ball.X-_ballRadius), (ScreenHeight-_boardHeight)/2+float32(ball.Y-_ballRadius), float32(2*_ballRadius), float32(2*_ballRadius), 1, color.White, true)
 		}
+	}
+
+	// draw free white ball
+	if g.Station.FreeMode {
+		whiteBall := g.Board.balls[0]
+		op.GeoM.Reset()
+		cx, cy := ebiten.CursorPosition()
+		op.GeoM.Translate(float64(cx)-_ballRadius, float64(cy)-_ballRadius)
+
+		whiteBall.draw(true)
+		screen.DrawImage(whiteBall.Image, op)
 	}
 
 	// draw cue stick
@@ -224,11 +264,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrintAt(screen, infoStr, ScreenWidth-10-100, 10)
 	ebitenutil.DebugPrintAt(screen, kindStr, ScreenWidth-10-100, 30)
 
-	// if g.Station.FirstCollidedBall != nil {
-	// 	ebitenutil.DebugPrintAt(screen, g.Station.FirstCollidedBall.kind.String(), ScreenWidth/2.5, 10)
-	// }
 	if g.Station.FreeMode {
 		ebitenutil.DebugPrintAt(screen, "Click to place the white ball", ScreenWidth/2.5, 10)
 	}
 
+	if g.Station.GameState == StateGameOver {
+		ebitenutil.DebugPrintAt(screen, "Game Over", ScreenWidth/2.5, 10)
+		ebitenutil.DebugPrintAt(screen, "Winner: "+g.Station.Winner.Name, ScreenWidth/2.5, 25)
+		ebitenutil.DebugPrintAt(screen, "Press SPACE to restart", ScreenWidth/2.5, 40)
+
+	}
 }

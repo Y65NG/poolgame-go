@@ -145,7 +145,7 @@ func (b *Board) Update() {
 }
 
 func (b *Board) Reset() {
-	b = NewBoard(b.station)
+	*b = *NewBoard(b.station)
 }
 
 func (b *Board) BallsStatic() bool {

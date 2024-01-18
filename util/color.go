@@ -2,9 +2,9 @@ package util
 
 import "image/color"
 
-func darken(c color.Color) color.Color {
+func Dim(c color.Color) color.Color {
 	r, g, b, a := c.RGBA()
-	return color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a / 2)}
+	return color.RGBA{uint8(r - 50), uint8(g - 50), uint8(b - 50), uint8(a)}
 }
 
 type ballColor color.Color

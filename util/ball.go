@@ -102,7 +102,12 @@ func NewWhiteball(balls []*Ball, station *Station) *Ball {
 }
 
 func (b *Ball) Move() {
-
+	if b.station.GameState != StatePlaying {
+		return
+	}
+	if b.catched {
+		return
+	}
 	var (
 		x, y   = b.X, b.Y
 		vx, vy = b.velocity.X, b.velocity.Y
@@ -183,7 +188,7 @@ func (b *Ball) containsPos(x, y float64) bool {
 	return false
 }
 
-func (b *Ball) draw() {
+func (b *Ball) draw(dim bool) {
 
 	var c color.Color
 	switch b.id {
@@ -206,6 +211,10 @@ func (b *Ball) draw() {
 		c = _colorGreen
 	case 7, 15:
 		c = _colorMaroon
+	}
+
+	if dim {
+		c = Dim(c)
 	}
 
 	vector.DrawFilledCircle(
