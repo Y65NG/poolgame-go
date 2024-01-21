@@ -152,6 +152,14 @@ func (g *Game) TurnToNextPlayer() {
 	g.Station.Reset()
 }
 
+func (g *Game) Reset() {
+	g.Board.Reset()
+	g.Station.Reset()
+	for i, player := range g.Players {
+		g.Players[i] = NewPlayer(player.Name, g.Station)
+	}
+}
+
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return ScreenWidth, ScreenHeight
 }
@@ -164,9 +172,7 @@ func (g *Game) Update() error {
 	case StateGameOver:
 		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 			log.Println("Restart")
-			g.Board.Reset()
-			g.Station.Reset()
-			g.Station.GameState = StatePlaying
+			g.Reset()
 		}
 	}
 
