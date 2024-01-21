@@ -55,22 +55,22 @@ func (c *CueStick) Move(balls []*Ball) {
 	}
 	if DEBUG {
 		b := c.targetBall
-
+		v := .5
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
 			c.selected = false
-			b.velocity.X -= 0.2
+			b.velocity.X -= v
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
 			c.selected = false
-			b.velocity.X += 0.2
+			b.velocity.X += v
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
 			c.selected = false
-			b.velocity.Y -= 0.2
+			b.velocity.Y -= v
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
 			c.selected = false
-			b.velocity.Y += 0.2
+			b.velocity.Y += v
 		}
 
 	}

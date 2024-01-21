@@ -30,4 +30,7 @@ func (s *Station) Reset() {
 	s.FirstCollidedBall = nil
 	s.Shot = false
 	s.BallIn = false
+	s.GameState = StatePlaying
+	s.Winner = nil
+
 }
